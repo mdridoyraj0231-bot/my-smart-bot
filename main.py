@@ -4,6 +4,7 @@ import google.generativeai as genai
 from flask import Flask
 from threading import Thread
 
+# আপনার তথ্যসমূহ
 BOT_TOKEN = "8887971553:AAGefLBl1nBBLtGPMwldt7oNyD5hwD4IgVI"
 GEMINI_API_KEY = "AIzaSyCX8w4vH1-N5nE8Sg7bL-Qz0mXvV9T0yYk"
 ADMIN_ID = "8762376045"
@@ -15,80 +16,68 @@ PANEL_GROUP_LINK = "https://t.me/+oe_rcewUi142ZmNl"
 bot = telebot.TeleBot(BOT_TOKEN)
 genai.configure(api_key=GEMINI_API_KEY)
 
-@bot.message_handler(commands=['start'])
-def send_welcome(message):
-    if str(message.from_user.id) == ADMIN_ID:
-        greeting = "স্বাগতম Boss! আমি আপনার অপেক্ষায় ছিলাম।"
-    else:
-        greeting = "স্বাগতম! আমি আপনার স্মার্ট বট। আপনাকে কীভাবে সাহায্য করতে পারি?"
+# মেনু বাটন ফাংশন
+def get_main_markup():
     markup = types.InlineKeyboardMarkup()
     markup.add(types.InlineKeyboardButton("কাস্টমার সার্ভিস", url=SUPPORT_LINK))
     markup.add(types.InlineKeyboardButton("প্যানেল রিভিউ ভিডিও", url=PANEL_VIDEO_LINK))
     markup.add(types.InlineKeyboardButton("ক্রয় প্যানেল", callback_data="buy_panel"))
-    bot.reply_to(message, greeting, reply_markup=markup)
+    return markup
 
-@bot.callback_query_handler(func=lambda call: call.data == "buy_panel")
-def buy_panel(call):
-    text = "৬ মাসের জন্য ২৫০ টাকা। এটি ক্রয় করলে আপনি কোনো সমস্যা ছাড়াই ৬ মাস নিশ্চিন্তে উপভোগ করতে পারবেন। আপনি কি ইচ্ছুক?"
-    markup = types.InlineKeyboardMarkup()
-    markup.add(types.InlineKeyboardButton("ক্রয় করুন", callback_data="payment_info"))
-    bot.send_message(call.message.chat.id, text, reply_markup=markup)
+# নিচের স্থায়ী মেনু বাটন
+def get_reply_keyboard():
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=False)
+    markup.add(types.KeyboardButton("🏠 মেনু"))
+    return markup
 
-@bot.callback_query_handler(func=lambda call: call.data == "payment_info")
-def payment_info(call):
-    bot.send_message(call.message.chat.id, f"আমাদের বিকাশ পার্সোনাল নাম্বার: {BKASH_NUMBER}\n\n২৫০ টাকা পাঠিয়ে পেমেন্ট প্রুফ হিসেবে একটি স্ক্রিনশট পাঠান।")
+@bot.message_handler(commands=['start'])
+def send_welcome(message):
+    text = "স্বাগতম Boss!" if str(message.from_user.id) == ADMIN_ID else "স্বাগতম! আমি আপনার স্মার্ট বট।"
+    bot.send_message(message.chat.id, text, reply_markup=get_main_markup())
+    bot.send_message(message.chat.id, "নিচে মেনু বাটনটি দেখুন:", reply_markup=get_reply_keyboard())
 
-@bot.message_handler(content_types=['photo'])
-def handle_payment_screenshot(message):
-    bot.forward_message(ADMIN_ID, message.chat.id, message.message_id)
-    bot.reply_to(message, "আপনার পেমেন্ট স্ক্রিনশটটি এডমিনের কাছে পাঠানো হয়েছে। তিনি চেক করে আপনাকে গ্রুপ লিংক দেবেন।")
-    markup = types.InlineKeyboardMarkup()
-    markup.add(types.InlineKeyboardButton("এপ্রুভ করুন", callback_data=f"approve_{message.chat.id}"))
-    markup.add(types.InlineKeyboardButton("রিজেক্ট করুন", callback_data=f"reject_{message.chat.id}"))
-    bot.send_message(ADMIN_ID, "নতুন পেমেন্ট প্রুফ এসেছে!", reply_markup=markup)
+@bot.message_handler(func=lambda message: message.text == "🏠 মেনু")
+def show_menu(message):
+    bot.reply_to(message, "আবার শুরুতে স্বাগতম, মেনু থেকে বেছে নিন:", reply_markup=get_main_markup())
 
-@bot.callback_query_handler(func=lambda call: call.data.startswith('approve_'))
-def approve_user(call):
-    chat_id = call.data.split('_')[1]
-    bot.send_message(chat_id, f"আপনার পেমেন্ট এপ্রুভ হয়েছে! এই লিংকে জয়েন করুন: {PANEL_GROUP_LINK}")
-    bot.edit_message_text("এপ্রুভ করা হয়েছে। ✅", chat_id=call.message.chat.id, message_id=call.message.message_id)
-
-@bot.callback_query_handler(func=lambda call: call.data.startswith('reject_'))
-def reject_user(call):
-    chat_id = call.data.split('_')[1]
-    bot.send_message(chat_id, "দুঃখিত, আপনার পেমেন্ট রিজেক্ট করা হয়েছে।")
-    bot.edit_message_text("রিজেক্ট করা হয়েছে। ❌", chat_id=call.message.chat.id, message_id=call.message.message_id)
+@bot.callback_query_handler(func=lambda call: True)
+def callback_query(call):
+    if call.data == "buy_panel":
+        markup = types.InlineKeyboardMarkup()
+        markup.add(types.InlineKeyboardButton("ক্রয় করুন", callback_data="payment_info"))
+        bot.send_message(call.message.chat.id, "৬ মাসের জন্য ২৫০ টাকা। আপনি কি ইচ্ছুক?", reply_markup=markup)
+    elif call.data == "payment_info":
+        bot.send_message(call.message.chat.id, f"আমাদের বিকাশ নাম্বার: {BKASH_NUMBER}\nপেমেন্ট করে স্ক্রিনশট পাঠান।")
 
 @bot.message_handler(func=lambda message: True)
-def echo_all(message):
+def handle_all_messages(message):
     text = message.text.lower()
-    if "লিংক দাও" in text or "প্যানেল লিংক" in text:
-        if str(message.from_user.id) == ADMIN_ID:
-            bot.reply_to(message, f"অবশ্যই Boss, এই নিন আপনার প্যানেল গ্রুপের লিংক: {PANEL_GROUP_LINK}")
-        return
+    
+    # ১. প্যানেল ও এডমিন প্রশংসা লজিক
     if "প্যানেল" in text or "panel" in text:
-        bot.reply_to(message, "আমাদের প্যানেলটি সেরা এবং অত্যন্ত নির্ভরযোগ্য! এন্টি-ব্যান এবং এন্টি-ব্ল্যাকলিস্ট সুবিধা সম্পন্ন।")
+        bot.reply_to(message, "আমাদের প্যানেলটি হলো এভারগ্রিন! এতে কোনো প্রকার ব্যান ইস্যু নেই এবং এটি বাজারের সেরা প্যানেল।", reply_markup=get_reply_keyboard())
     elif "এডমিন" in text or "admin" in text or "ridoy" in text:
-        bot.reply_to(message, "আমাদের এডমিন Ridoy খুবই দক্ষ এবং প্যানেলের জন্য সবসময় প্রস্তুত!")
+        bot.reply_to(message, "আমাদের এডমিন Ridoy ভাই একজন জিনিয়াস! প্যানেল নিয়ে তার নলেজ অতুলনীয় এবং সবসময় আমাদের জন্য বেস্ট সাপোর্ট নিশ্চিত করেন।", reply_markup=get_reply_keyboard())
+    
+    # ২. সব প্রশ্নের উত্তর ও দেশ ভিত্তিক ভাষা লজিক
     else:
         try:
             model = genai.GenerativeModel('gemini-pro')
-            response = model.generate_content(message.text)
-            if str(message.from_user.id) == ADMIN_ID:
-                bot.reply_to(message, f"Boss, {response.text}")
-            else:
-                bot.reply_to(message, response.text)
-        except:
-            bot.reply_to(message, "দুঃখিত, কোনো সমস্যার কারণে আমি উত্তর দিতে পারছি না।")
+            prompt = (
+                f"তুমি একজন স্মার্ট অ্যাসিস্ট্যান্ট। যদি ইউজার তার দেশের নাম উল্লেখ করে, তবে সেই দেশের ভাষায় উত্তর দাও। "
+                f"যদি ইউজার কোন দেশের নাম না বলে, তবে সব সময় বাংলা ভাষায় উত্তর দাও। "
+                f"ইউজারের প্রশ্ন: {message.text}"
+            )
+            response = model.generate_content(prompt)
+            bot.reply_to(message, response.text, reply_markup=get_reply_keyboard())
+        except Exception:
+            bot.reply_to(message, "দুঃখিত Boss, এই মুহূর্তে সার্ভারে সমস্যা হচ্ছে। মেনু বাটনে ক্লিক করুন।", reply_markup=get_reply_keyboard())
 
+# ফ্লাস্ক সার্ভার
 app = Flask(__name__)
 @app.route('/')
-def home():
-    return "Bot is running!"
-
-def run():
-    app.run(host='0.0.0.0', port=8080)
+def home(): return "Bot is running!"
 
 if __name__ == "__main__":
-    Thread(target=run).start()
-    bot.polling()
+    Thread(target=lambda: app.run(host='0.0.0.0', port=8080)).start()
+    bot.infinity_polling()
