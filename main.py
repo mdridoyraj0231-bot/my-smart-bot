@@ -1,6 +1,9 @@
 import telebot
 from telebot import types
 import google.generativeai as genai
+import http.server
+import socketserver
+import threading
 
 # আপনার তথ্যসমূহ
 BOT_TOKEN = "8887971553:AAGefLBl1nBBLtGPMwldt7oNyD5hwD4IgVI"
@@ -34,6 +37,10 @@ def send_welcome(message):
     bot.send_message(message.chat.id, text, reply_markup=get_main_markup())
     bot.send_message(message.chat.id, "নিচে মেনু বাটনটি দেখুন:", reply_markup=get_reply_keyboard())
 
+@bot.message_handler(commands=['health'])
+def health_check(message):
+    bot.reply_to(message, "বট একদম সচল আছে, Boss!")
+
 @bot.message_handler(func=lambda message: message.text == "🏠 মেনু")
 def show_menu(message):
     bot.reply_to(message, "আবার শুরুতে স্বাগতম, মেনু থেকে বেছে নিন:", reply_markup=get_main_markup())
@@ -51,16 +58,13 @@ def callback_query(call):
 def handle_all_messages(message):
     text = message.text.lower()
     
-    # ১. প্যানেল ও এডমিন প্রশংসা লজিক
     if "প্যানেল" in text or "panel" in text:
         bot.reply_to(message, "আমাদের প্যানেলটি হলো এভারগ্রিন! এতে কোনো প্রকার ব্যান ইস্যু নেই এবং এটি বাজারের সেরা প্যানেল।", reply_markup=get_reply_keyboard())
     elif "এডমিন" in text or "admin" in text or "ridoy" in text:
         bot.reply_to(message, "আমাদের এডমিন Ridoy ভাই একজন জিনিয়াস! প্যানেল নিয়ে তার নলেজ অতুলনীয় এবং সবসময় আমাদের জন্য বেস্ট সাপোর্ট নিশ্চিত করেন।", reply_markup=get_reply_keyboard())
     
-    # ২. সব প্রশ্নের উত্তর ও দেশ ভিত্তিক ভাষা লজিক
     else:
         try:
-            # জিমিনাইয়ের বর্তমান সবথেকে ফাস্ট এবং রেকমেন্ডেড মডেল
             model = genai.GenerativeModel('gemini-1.5-flash')
             prompt = (
                 f"তুমি একজন স্মার্ট অ্যাসিস্ট্যান্ট। যদি ইউজার তার দেশের নাম উল্লেখ করে, তবে সেই দেশের ভাষায় উত্তর দাও। "
@@ -73,6 +77,16 @@ def handle_all_messages(message):
             print(f"Error: {e}")
             bot.reply_to(message, "দুঃখিত Boss, এই মুহূর্তে সার্ভারে সমস্যা হচ্ছে। মেনু বাটনে ক্লিক করুন।", reply_markup=get_reply_keyboard())
 
-# ফ্লাস্ক ছাড়া সরাসরি ২৪ ঘণ্টা ব্যাকগ্রাউন্ডে চলার জন্য মেইন লুপ
+# রেন্ডার ফ্রি সার্ভার সচল রাখার জন্য হালকা ব্যাকগ্রাউন্ড পিং পোর্ট
+def run_dummy_server():
+    handler = http.server.SimpleHTTPRequestHandler
+    # রেন্ডার ডিফল্টভাবে ১০000 বা ৮০৮০ পোর্ট খোঁজে
+    with socketserver.TCPServer(("", 8080), handler) as httpd:
+        httpd.serve_forever()
+
 if __name__ == "__main__":
+    # মেইন বট পোলিং এর সাথে প্যারালাল সার্ভার রান করার বুদ্ধি
+    server_thread = threading.Thread(target=run_dummy_server, daemon=True)
+    server_thread.start()
+    
     bot.infinity_polling()
