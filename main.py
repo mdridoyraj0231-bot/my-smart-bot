@@ -1,8 +1,6 @@
 import telebot
 from telebot import types
 import google.generativeai as genai
-from flask import Flask
-from threading import Thread
 
 # আপনার তথ্যসমূহ
 BOT_TOKEN = "8887971553:AAGefLBl1nBBLtGPMwldt7oNyD5hwD4IgVI"
@@ -62,7 +60,8 @@ def handle_all_messages(message):
     # ২. সব প্রশ্নের উত্তর ও দেশ ভিত্তিক ভাষা লজিক
     else:
         try:
-            model = genai.GenerativeModel('gemini-pro')
+            # জিমিনাইয়ের বর্তমান সবথেকে ফাস্ট এবং রেকমেন্ডেড মডেল
+            model = genai.GenerativeModel('gemini-1.5-flash')
             prompt = (
                 f"তুমি একজন স্মার্ট অ্যাসিস্ট্যান্ট। যদি ইউজার তার দেশের নাম উল্লেখ করে, তবে সেই দেশের ভাষায় উত্তর দাও। "
                 f"যদি ইউজার কোন দেশের নাম না বলে, তবে সব সময় বাংলা ভাষায় উত্তর দাও। "
@@ -70,14 +69,10 @@ def handle_all_messages(message):
             )
             response = model.generate_content(prompt)
             bot.reply_to(message, response.text, reply_markup=get_reply_keyboard())
-        except Exception:
+        except Exception as e:
+            print(f"Error: {e}")
             bot.reply_to(message, "দুঃখিত Boss, এই মুহূর্তে সার্ভারে সমস্যা হচ্ছে। মেনু বাটনে ক্লিক করুন।", reply_markup=get_reply_keyboard())
 
-# ফ্লাস্ক সার্ভার
-app = Flask(__name__)
-@app.route('/')
-def home(): return "Bot is running!"
-
+# ফ্লাস্ক ছাড়া সরাসরি ২৪ ঘণ্টা ব্যাকগ্রাউন্ডে চলার জন্য মেইন লুপ
 if __name__ == "__main__":
-    Thread(target=lambda: app.run(host='0.0.0.0', port=8080)).start()
     bot.infinity_polling()
