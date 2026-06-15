@@ -4,7 +4,7 @@ import http.server
 import socketserver
 import threading
 
-BOT_TOKEN = "8887971553:8757500280:AAGv_4TJhBDfKobD4amKFKDn4_aQgBVLVk4"
+BOT_TOKEN = "8757500280:AAGv_4TJhBDfKobD4amKFKDn4_aQgBVLVk4"
 GEMINI_API_KEY = "AIzaSyCX8w4vH1-N5nE8Sg7bL-Qz0mXvV9T0yYk"
 
 bot = telebot.TeleBot(BOT_TOKEN)
