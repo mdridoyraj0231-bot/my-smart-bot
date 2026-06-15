@@ -5,7 +5,7 @@ import socketserver
 import threading
 
 BOT_TOKEN = "8887971553:AAGefLBl1nBBLtGPMwldt7oNyD5hwD4IgVI"
-GEMINI_API_KEY = "AIzaSyCX8w4vH1-N5nE8Sg7bL-Qz0mXvV9T0yYk"
+GEMINI_API_KEY = "8757500280:AAGv_4TJhBDfKobD4amKFKDn4_aQgBVLVk4"
 
 bot = telebot.TeleBot(BOT_TOKEN)
 genai.configure(api_key=GEMINI_API_KEY)
